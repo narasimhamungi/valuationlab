@@ -1,0 +1,41 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  unit:
+    name: Unit tests (offline, no Trellis required)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      # Deliberately installs WITHOUT the trellis dependency: the offline path must
+      # never require Trellis to be present. If this job starts failing on an import
+      # error, something below the data layer has grown a hard Trellis dependency.
+      - run: pip install pytest
+      - run: PYTHONPATH=src pytest tests/ -v
+      - run: PYTHONPATH=src python scripts/diagnose_consistency.py
+
+  integration:
+    name: Cross-repo integration (real Trellis, real EDGAR)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      # Proof the coupling is real, not cosmetic: checks out Trellis at HEAD, installs
+      # it as a package, and runs the live pipeline end to end. If Trellis changes its
+      # forecast schema, this job breaks -- which is the entire point of having it.
+      - name: Check out Trellis
+        uses: actions/checkout@v4
+        with:
+          repository: narasimhamungi/trellis
+          path: _trellis
+      - run: pip install ./_trellis pytest
+      - name: Verify the integration contract
+        env:
+          TRELLIS_USER_AGENT: ${{ secrets.TRELLIS_USER_AGENT }}
+        run: PYTHONPATH=src pytest tests/integration -v

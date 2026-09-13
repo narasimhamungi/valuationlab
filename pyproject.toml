@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "valuationlab"
+version = "0.1.0"
+description = "Integrated DCF / trading comparables / precedent transactions valuation engine, built on Trellis's validated 3-statement forecasts."
+requires-python = ">=3.10"
+dependencies = [
+    "trellis @ git+https://github.com/narasimhamungi/trellis.git",
+    "requests>=2.31",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.4"]
+live = ["yfinance>=0.2.40"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

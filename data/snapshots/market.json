@@ -1,0 +1,62 @@
+{
+  "ABBV": {
+    "as_of": "2026-09-13",
+    "currency": "USD",
+    "share_price": 257.12,
+    "shares_outstanding": 1767117285.0
+  },
+  "ABT": {
+    "as_of": "2026-09-13",
+    "currency": "USD",
+    "share_price": 101.95,
+    "shares_outstanding": 1730383296.0
+  },
+  "BDX": {
+    "as_of": "2026-09-13",
+    "currency": "USD",
+    "share_price": 177.85,
+    "shares_outstanding": 272386800.0
+  },
+  "BMY": {
+    "as_of": "2026-09-13",
+    "currency": "USD",
+    "share_price": 63.64,
+    "shares_outstanding": 2042714656.0
+  },
+  "BSX": {
+    "as_of": "2026-09-13",
+    "currency": "USD",
+    "share_price": 42.98,
+    "shares_outstanding": 1449229526.0
+  },
+  "JNJ": {
+    "as_of": "2026-09-13",
+    "currency": "USD",
+    "share_price": 265.58,
+    "shares_outstanding": 2409898597.0
+  },
+  "MDT": {
+    "as_of": "2026-09-13",
+    "currency": "USD",
+    "share_price": 90.96,
+    "shares_outstanding": 1279137890.0
+  },
+  "MRK": {
+    "as_of": "2026-09-13",
+    "currency": "USD",
+    "share_price": 143.93,
+    "shares_outstanding": 2467171638.0
+  },
+  "PFE": {
+    "as_of": "2026-09-13",
+    "currency": "USD",
+    "share_price": 27.72,
+    "shares_outstanding": 5699673589.0
+  },
+  "SYK": {
+    "as_of": "2026-09-13",
+    "currency": "USD",
+    "share_price": 275.56,
+    "shares_outstanding": 383573046.0
+  }
+}
