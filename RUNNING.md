@@ -33,11 +33,17 @@ pip install -e ".[dev]"
 
 ## Step 3 — Run the test suite
 
+A committed `conftest.py` adds `src/` to the path automatically, so plain `pytest`
+works with no environment variable on any OS:
+
 ```bash
-PYTHONPATH=src pytest tests/ -v
+pytest tests/ -v
 ```
 
-**Expected:** `57 passed, 1 skipped`.
+(`PYTHONPATH=src pytest tests/ -v` also still works, and is the only form that works on
+PowerShell if `conftest.py` is ever missing from a checkout for some reason.)
+
+**Expected:** `82 passed, 1 skipped`.
 
 The skip is the Trellis integration contract test — correct behaviour without EDGAR
 access. Anything else failing means something is wrong; read the assertion message, they
@@ -46,7 +52,7 @@ are written to explain the failure rather than just report it.
 To see the suite by module:
 
 ```bash
-PYTHONPATH=src pytest tests/ -v --tb=short
+pytest tests/ -v --tb=short
 ```
 
 ## Step 4 — Run the cross-module diagnostic
@@ -88,19 +94,22 @@ export TRELLIS_USER_AGENT="Your Name your@email.com"
 pip install -e ".[live]"
 ```
 
-**5c. Replace the CAPM placeholders.** Open `scripts/run_valuation.py` and find the
-`CAPM = CAPMInputs(...)` block. It ships labelled `PLACEHOLDER -- not yet sourced`. You
-need three figures with a stated basis:
+**5c. CAPM inputs are already sourced for J&J**, in `scripts/run_valuation.py`'s
+`CAPM = CAPMInputs(...)` block — not placeholders. Read the `basis=` string before
+trusting the output; it states exactly what each figure is, where it came from, and one
+disclosed limitation:
 
-| Input | What to source |
+| Input | What's there now |
 |---|---|
-| `beta` | State the lookback window and the index. "5-year monthly vs S&P 500" is a basis; a bare number is not. |
-| `risk_free_rate` | 10-year US Treasury yield on your valuation date. |
-| `equity_risk_premium` | A cited estimate with its own date — e.g. Damodaran's implied ERP. |
+| `beta` | Blume-adjusted (0.33 + 0.67 × raw), averaged from two independent raw-beta sources, with the adjustment rationale stated |
+| `risk_free_rate` | 10-year US Treasury close, dated |
+| `equity_risk_premium` | Damodaran's implied ERP as of January 2026 — the last edition with a fixed, citable source. Paired with a current risk-free rate this is a real, disclosed mismatch, not a rounding issue |
 
-Write the actual citation into the `basis=` string. It is printed in the output and is
-the difference between a defensible number and an invented one. The module will run with
-the placeholders, but the conclusion is not publishable until they are replaced.
+**If you're valuing a different company**, replace all three with your own sourced
+figures — the same discipline applies: state the lookback window and index for beta, not
+a bare number; cite the ERP's date, don't just quote a figure; and write the actual
+citation into `basis=`, since it's printed in the output and is the difference between a
+defensible number and an invented one.
 
 ## Step 6 — Generate golden snapshots
 
@@ -108,15 +117,26 @@ the placeholders, but the conclusion is not publishable until they are replaced.
 python scripts/refresh_snapshots.py
 ```
 
-This pulls J&J and all five peers through Trellis from SEC EDGAR, runs the forecast, and
-writes dated fixtures to `data/snapshots/`, plus a market snapshot.
+This pulls the subject and every peer — pharma and medtech — through Trellis from SEC
+EDGAR, runs the forecast, and writes dated fixtures to `data/snapshots/`, plus a market
+snapshot for all of them.
 
-**Expected:** six `wrote <TICKER>_financials.json` lines and one `wrote market.json`.
+**Expected:** nine `wrote <TICKER>_financials.json` lines, one `FAILED ABT` line
+(expected — see below), and one `wrote market.json (10 tickers)`.
 
-**If a company fails,** the script reports which fields were missing rather than aborting
-the whole run. That is a real Trellis tag-resolution issue, not a ValuationLab bug — run
-Trellis's `scripts/diagnose_tags.py` against the blocking field. Do not commit a partial
-snapshot set: the offline run will silently drop those peers from the comps range.
+**Abbott Laboratories (ABT) is a known, permanent failure**, not something to chase here.
+Its ingestion fails on nine fields across every year 2020-2025 — a broader
+data-availability problem Trellis's tag-level fixes don't address. `run_valuation.py`
+excludes it explicitly and states why.
+
+**If any OTHER company fails,** the script reports which fields were missing rather than
+aborting the whole run. That's a real Trellis tag-resolution issue, not a ValuationLab
+bug — run Trellis's `scripts/diagnose_tags.py` against the blocking field, and if it
+returns "no candidate list defined," query SEC's companyfacts API directly for that
+CIK and field name to find what the filer actually uses (see Trellis's own commit
+history for worked examples: R&D, D&A, long-term debt, payables, and receivables tags
+were all found and fixed this way). Do not commit a partial snapshot set: the offline
+run will silently drop missing peers from whichever comps group they belong to.
 
 Review the diff before committing. Snapshots are never auto-refreshed in CI by design —
 changing the numbers should be an explicit, reviewable commit, otherwise the fixture is a
@@ -144,26 +164,50 @@ PYTHONPATH=src python scripts/run_valuation.py --offline --max-market-age-days 3
 
 ### Reading the output
 
-1. **Football field** — three ranges plus the market price marker, anchor labelled.
+1. **Football field** — DCF, trading comps, and precedent transactions, plus the market
+   price marker. Each range is labelled `(disqualified)` when it trips a structural bar,
+   or `<-- anchor (stated)` / `<-- anchor (derived)` when it's the one in force. It's
+   normal, not broken, for every method to show `(disqualified)` — see Anchor assessment.
 2. **Method detail** — each range with its basis, provenance (both dates: filing year and
    market date), and structural caveat.
 3. **Divergence** — pairwise, classified by midpoint gap. `Disagree` means a gap ≥50%,
-   which is a contradiction regardless of whether the ranges touch.
-4. **Structural warnings** — mechanical flags traced to specific numbers: terminal value
-   share above 75%, equity weight above 85%, precedent spread above 2×, any range wider
-   than 60% of its midpoint.
-5. **Conclusion** — anchor, range, stated reasoning, and where the market price sits.
+   a contradiction regardless of whether the ranges touch; `Inconclusive` means the gap
+   is small but at least one range is too wide (>60% of its midpoint) for that agreement
+   to mean anything.
+4. **Structural warnings** — mechanical flags traced to specific numbers.
+5. **Anchor assessment** — which methods are disqualified and why, which are eligible,
+   and the derived recommendation. `NONE` is a real, correctly-produced answer when every
+   method fails its own bar — it is not an error and does not mean the run is broken.
+6. **Conclusion** — the anchor actually in force (stated overrides derived if you passed
+   one; a mismatch between the two is flagged explicitly, not silently resolved either
+   way) and where the market price sits relative to it. When there's no anchor, this
+   section reports the full span across all methods instead.
+7. **Sum-of-the-parts** — a separate section below the main conclusion, only when the
+   subject's base year matches the year `segments.py`'s hardcoded segment data is dated
+   to (currently FY2025 for J&J). Each segment's peer group, multiple range, and implied
+   EV are shown independently, with `[LEG NOT FIT]` on any segment whose peer group is
+   too dispersed — read the closing line for what fraction of total revenue actually
+   rests on a sound peer group before trusting the total.
 
 ### What to sanity-check first
 
 - Is the base year the most recent fiscal year? If Trellis fell back further, a field is
   missing — check the snapshot's `drivers_note`.
-- Did any peer get excluded? The reason is printed. One exclusion on a five-peer set is
-  material.
+- Did any peer get excluded? The reason is printed. On a four-peer group, one exclusion
+  is material.
 - Is terminal value share above 75%? Expected for a stable large-cap, but it determines
-  how much weight the DCF deserves.
-- Does the market price sit inside or outside the anchor range? Outside is interesting;
-  make sure you can explain it before publishing.
+  how much weight the DCF deserves — and above that threshold the DCF disqualifies from
+  anchoring entirely.
+- Does the Anchor assessment section say `NONE`? That's a legitimate outcome, not a bug —
+  check which disqualifications fired and whether they still make sense for the inputs
+  you're running.
+- **In the SOTP section:** does the revenue reconciliation show a gap of 0? If not, the
+  hardcoded segment figures in `segments.py` are stale relative to whatever Trellis just
+  ingested — don't value around a nonzero gap, fix the segment data. This check has
+  already caught one real unit-mismatch bug (millions vs. raw dollars) before it could
+  produce a silently wrong number.
+- Does the market price sit inside or outside the anchor range (when one exists)?
+  Outside is interesting; make sure you can explain it before publishing.
 
 ---
 
@@ -205,6 +249,10 @@ PYTHONPATH=src pytest tests/integration -v
 | `WACC must exceed terminal_growth` | CAPM inputs produce a discount rate at or below `TERMINAL_GROWTH`. Check beta and ERP |
 | `range must be ordered low<=mid<=high` | An upstream module produced something inconsistent. Fix there — the error deliberately does not sort it away |
 | Integration tests skip | No Trellis install or no `TRELLIS_USER_AGENT`. Expected offline |
+| `Segment revenue does not reconcile to consolidated` | The hardcoded segment data in `segments.py` is stale, the company reorganised its segments, or (this has happened once) the two figures are in different units. Fix the segment constants — never widen the tolerance to make this pass |
+| `SOTP skipped: subject base year is FYxxxx` | `segments.py`'s hardcoded segment revenue is dated to a specific fiscal year (FY2025 for J&J). If Trellis's base year has since rolled forward, update the segment constants with the new year's 10-K figures before the SOTP section will run again |
+| `git push` → `Recv failure: Connection was reset` | Not a git or GitHub problem — an HTTP/2 negotiation failure on some Windows/network combinations. Run `git config --global http.version HTTP/1.1` once, then retry |
+| PowerShell mangles a pasted multi-line Python one-liner | Don't paste `python -c "..."` with embedded quotes into PowerShell — write the script to a `.py` file with a here-string (`@'` ... `'@ \| Set-Content`) and run that instead |
 
 ---
 
@@ -214,6 +262,7 @@ PYTHONPATH=src pytest tests/integration -v
 valuationlab/
 ├── README.md                      portfolio-facing writeup
 ├── RUNNING.md                     this file
+├── conftest.py                    puts src/ on the path so plain `pytest` works everywhere
 ├── pyproject.toml                 package manifest; trellis as a git dependency
 ├── .github/workflows/ci.yml       unit (offline) + integration (real Trellis)
 ├── src/valuationlab/
@@ -221,12 +270,14 @@ valuationlab/
 │   ├── comps.py                   peer multiples, exclusion transparency, implied value
 │   ├── precedent.py               sourced deals, tier discipline
 │   ├── marketdata.py              live/snapshot provider, provenance, staleness
-│   └── triangulate.py             football field, divergence, warnings, conclusion
+│   ├── triangulate.py             football field, divergence, derived anchor, conclusion
+│   └── segments.py                segment-weighted SOTP, per-leg fitness tracking
 ├── scripts/
 │   ├── run_valuation.py           end-to-end runner (--offline / --live)
-│   ├── refresh_snapshots.py       regenerate golden fixtures
+│   ├── refresh_snapshots.py       regenerate golden fixtures (subject + both peer groups)
 │   └── diagnose_consistency.py    cross-module consistency checks
-├── tests/                         57 offline tests
+├── tests/                         82 offline tests, one file per module above
 │   └── integration/               Trellis contract (skips without EDGAR)
-└── data/snapshots/                empty until Step 6; no placeholder data committed
+└── data/snapshots/                real, committed fixtures for 9 of 10 companies
+                                    (ABT excluded — see its own README)
 ```

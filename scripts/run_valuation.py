@@ -87,9 +87,14 @@ CAPM = CAPMInputs(
         "because raw betas mean-revert and the 5Y window spans the 2023 Kenvue "
         "separation, so it prices a capital structure J&J no longer has. "
         "rf: 10Y UST close 4.96% on 2026-09-11 (Treasury DGS10). "
-        "ERP: Damodaran implied ERP 4.23%, January 2026 -- REPLACE with the "
-        "current monthly figure from damodaran.com; pairing a January ERP with "
-        "a September rf is inconsistent after a ~75bp rate move."
+        "ERP: Damodaran implied ERP 4.23%, as of January 2026 (Equity Risk "
+        "Premiums: Determinants, Estimates and Implications, 2026 Edition, "
+        "SSRN, March 2026). Damodaran republishes this monthly on damodaran.com's "
+        "front page, but that figure isn't independently datestamped or citable "
+        "after the fact -- the January print is the last one with a fixed, "
+        "verifiable source. Known limitation: paired with a September risk-free "
+        "rate, an 8-month-old ERP after a ~75bp rate move is a real mismatch, "
+        "not a rounding issue -- flagged here rather than silently absorbed."
     ),
 )
 TERMINAL_GROWTH = 0.025
