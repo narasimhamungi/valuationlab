@@ -32,7 +32,14 @@ COMPANIES = [
     {"cik": 78003, "ticker": "PFE", "name": "Pfizer Inc."},
     {"cik": 310158, "ticker": "MRK", "name": "Merck & Co., Inc."},
     {"cik": 1551152, "ticker": "ABBV", "name": "AbbVie Inc."},
-    {"cik": 1800, "ticker": "ABT", "name": "Abbott Laboratories"},
+    # ABT (Abbott, CIK 1800) deliberately absent. It was fetched here while
+    # appearing in neither PHARMA_PEERS nor MEDTECH_PEERS, so its snapshot was
+    # generated and never read. It does not belong in either: Abbott is a
+    # four-segment diversified filer (Medical Devices, Diagnostics, Nutrition,
+    # Established Pharmaceuticals), so its trading multiple is a blend across
+    # businesses -- using it as a pure-play peer for one SOTP leg is exactly the
+    # error this SOTP exists to expose. Chosen on comparability, not on which
+    # option preserved the MedTech leg's fitness verdict.
     {"cik": 14272, "ticker": "BMY", "name": "Bristol-Myers Squibb Company"},
     # Medtech peers, added for the segment-weighted SOTP in run_valuation.py -- these
     # were absent from this list even after run_valuation.py started requiring them,

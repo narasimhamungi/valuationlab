@@ -112,7 +112,7 @@ same subject company:
 
 | Peer set | EV/Revenue spread | EV/EBITDA spread |
 |---|---|---|
-| Pharma (PFE, MRK, ABBV, BMY) | 2.5x | 2.9x |
+| Pharma (PFE, MRK, ABBV, BMY) | 2.5x | 3.0x |
 | Pharma + LLY, AMGN (6 peers) | **4.7x** | **4.3x** |
 | MedTech (MDT, BDX, SYK, BSX) | **1.5x** | 1.4x |
 
@@ -127,7 +127,7 @@ survived a larger sample, and building an architecture that reports per-segment 
 instead of a single blended number.
 
 **Applying that finding: the MedTech segment clears every structural bar on its own.**
-J&J's MedTech segment ($33.8B FY2025 revenue) values at **~$101-157B enterprise value**
+J&J's MedTech segment ($33.8B FY2025 revenue) values at **$104.6-159.9B enterprise value**
 against its own peer group — a real, defensible number. The Innovative Medicine segment
 does not clear the bar, and the tool says so explicitly rather than blending the two into
 one company-wide figure that would hide which half is trustworthy.

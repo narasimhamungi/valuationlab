@@ -73,10 +73,16 @@ PEERS = PHARMA_PEERS  # whole-company Trading Comparables stays pharma-only,
 # correct naive-comps answer for a diversified filer. MEDTECH_PEERS is fetched
 # separately below, only for the segment-weighted SOTP.
 
-# CAPM inputs are supplied, never fetched -- see marketdata.CAPMInputs. These carry a
-# stated basis so a reviewer can challenge the number rather than guess where it came
-# from. REPLACE THESE with your own sourced figures before publishing any conclusion:
-# they are placeholders with an honest label, not researched values.
+# CAPM inputs are supplied, never fetched -- see marketdata.CAPMInputs. Each carries a
+# stated basis below so a reviewer can challenge the number rather than guess where it
+# came from. These are researched and dated, not placeholders. Re-verify the risk-free
+# rate and the ERP before republishing: the basis records their as-of dates, and the
+# mismatch between them is disclosed there rather than hidden.
+#
+# This comment previously told the reader these were placeholders to be replaced. That
+# was true when written and became false once the figures were sourced, and it sat
+# directly above the citations contradicting it -- a label that no longer matched
+# behaviour, in a repo whose argument is that labels must match behaviour.
 CAPM = CAPMInputs(
     beta=0.53,
     risk_free_rate=0.0496,
