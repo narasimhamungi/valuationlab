@@ -106,25 +106,49 @@ is surfaced loudly, not silently absorbed.
 
 ## Key findings
 
-**A single peer set cannot value Johnson & Johnson, and the evidence rules out
-small-sample noise as the explanation.** Measured on identical methodology against the
-same subject company:
+**A single peer set cannot value Johnson & Johnson.** Measured on identical methodology
+against the same subject company, both sets at four peers:
 
 | Peer set | EV/Revenue spread | EV/EBITDA spread |
 |---|---|---|
 | Pharma (PFE, MRK, ABBV, BMY) | 2.5x | 3.0x |
-| Pharma + LLY, AMGN (6 peers) | **4.7x** | **4.3x** |
 | MedTech (MDT, BDX, SYK, BSX) | **1.5x** | 1.4x |
 
-Adding more pharma peers made the dispersion *worse*, not better — the opposite of what
-sampling noise would produce. The dispersion is economic: pharma valuation is dominated by
-company-specific patent-cliff timing (Pfizer and BMS pricing for decline, AbbVie and Lilly
-for growth), which doesn't average into a meaningful median. Medtech businesses share
-demand drivers and replacement cycles and genuinely cluster. **This is why the
-sum-of-the-parts module exists**, and it's a finding no generic single-multiple comps repo
-can produce, because producing it required noticing the dispersion, testing whether it
-survived a larger sample, and building an architecture that reports per-segment fitness
-instead of a single blended number.
+Equal sample sizes, so the comparison is fair and the verdict holds: pharma multiples are
+too dispersed for a median to value a segment, MedTech's are not. **This is why the
+sum-of-the-parts module exists** — it reports per-segment fitness instead of a single
+blended number.
+
+### Correction: the six-peer argument this section used to make
+
+An earlier version of this section added Eli Lilly and Amgen, observed the spread widen
+from 2.5x to 4.7x, and concluded that dispersion was economic rather than small-sample
+noise. **That inference was invalid, and the flaw was in the statistic.** A min/max spread
+is monotonic in sample size — the minimum can only fall and the maximum can only rise — so
+it widens whatever you add, including draws from a single tight distribution. Simulated
+from one lognormal with no change in the underlying distribution, mean min/max spread runs
+about 1.7x at four peers, 1.9x at six and 2.2x at ten. Observing a wider spread at six
+peers was therefore consistent with the claim and equally consistent with its opposite.
+
+Re-measured on scale-free statistics that can move in either direction, the result is
+inconclusive and rests on one company. Adding **LLY alone** raises the coefficient of
+variation from 0.460 to 0.701; adding **AMGN alone** *lowers* it to 0.394. Across both, the
+CV rises while the interquartile range over median falls — the signature of a single
+extreme observation rather than broad heterogeneity.
+
+So the supported claim is narrower and names the company: **Eli Lilly trades at 16.1x
+revenue against a 3.4x–8.6x range for Pfizer, Merck, AbbVie and Bristol-Myers.** The pharma
+peer set is one company away from usable. That is a better finding than the one it
+replaces, and it is checkable.
+
+A second consequence: the 2.0x disqualification threshold is not scale-free either. At four
+peers with the observed dispersion, pure sampling exceeds it roughly 68% of the time. The
+fitness verdicts above still stand — both sets have four peers, so the monotonicity cancels
+— but the threshold should not be quoted as a clean test in isolation.
+
+Measured and reproducible in
+[EquityResearch](https://github.com/narasimhamungi/equityresearch):
+`python scripts/check_dispersion.py --live`.
 
 **Applying that finding: the MedTech segment clears every structural bar on its own.**
 J&J's MedTech segment ($33.8B FY2025 revenue) values at **$104.6-159.9B enterprise value**
