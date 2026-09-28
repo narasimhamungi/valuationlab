@@ -314,3 +314,25 @@ def test_diagnose_flags_comps_dispersion_and_small_peer_set():
                    comps_multiple_spread=3.0, comps_peer_count=4)
     assert any("3.0x from cheapest to richest" in w for w in ws)
     assert any("only 4 peers" in w for w in ws)
+
+
+def test_single_precedent_deal_cannot_anchor():
+    """Found live on Community Health Systems: one sourced deal gives a zero-width range
+    and a 1.0x spread, passed every check, and was chosen as the ANCHOR."""
+    from valuationlab.triangulate import Method, MethodRange, triangulate
+    ranges = [
+        MethodRange(Method.DCF, low=90, mid=100, high=110, basis="t", caveat="t", provenance="t"),
+        MethodRange(Method.PRECEDENT, low=95, mid=95, high=95, basis="t", caveat="t", provenance="t"),
+    ]
+    c = triangulate(ranges, terminal_value_share=0.5, equity_weight_in_wacc=0.5,
+                    precedent_tier_spread=1.0, precedent_deal_count=1)
+    assert any(d.method is Method.PRECEDENT and "single transaction" in d.reason
+               for d in c.recommendation.disqualified)
+    assert c.anchor_method is not Method.PRECEDENT
+
+
+def test_two_precedent_deals_pass_the_count_check():
+    from valuationlab.triangulate import Method, MethodRange, recommend_anchor
+    ranges = [MethodRange(Method.PRECEDENT, low=95, mid=100, high=105, basis="t", caveat="t", provenance="t")]
+    rec = recommend_anchor(ranges, precedent_tier_spread=1.1, precedent_deal_count=2)
+    assert not any(d.method is Method.PRECEDENT for d in rec.disqualified)

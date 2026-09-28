@@ -67,6 +67,36 @@ def test_unlevered_fcf_matches_hand_calculation():
     assert result.ufcf == pytest.approx(expected_ufcf)
 
 
+def test_unlevered_fcf_treats_absent_inventory_as_zero_not_a_keyerror():
+    """Regression test for a real live-run failure: CYH (a hospital operator)
+    has no InventoryNet tag anywhere in its filings -- Trellis's own
+    build_annual_table simply never writes the key when no tag was ever
+    found, so base_year_actuals/forecast_year genuinely lack 'inventory'
+    entirely, not a None-valued one. That's a services company's real
+    balance sheet shape, not missing data -- KeyError was the actual bug."""
+    services_base = {k: v for k, v in BASE_YEAR.items() if k != "inventory"}
+    services_fy1 = {k: v for k, v in make_forecast_year(10_500.0, 0.05).items()
+                    if k != "inventory"}
+    result = unlevered_fcf(services_base, services_fy1, services_base, year=1)  # must not raise
+
+    nwc_now = services_fy1["accounts_receivable"] - services_fy1["accounts_payable"]
+    nwc_prior = services_base["accounts_receivable"] - services_base["accounts_payable"]
+    pretax = services_fy1["operating_income"] - services_fy1["interest_expense"]
+    expected_tax_rate = services_fy1["income_tax_expense"] / pretax
+    expected_nopat = services_fy1["operating_income"] * (1 - expected_tax_rate)
+    expected_ufcf = (expected_nopat + services_fy1["depreciation_amortization"]
+                     - services_fy1["capex"] - (nwc_now - nwc_prior))
+    assert result.ufcf == pytest.approx(expected_ufcf)
+
+
+def test_unlevered_fcf_still_requires_accounts_receivable_and_payable():
+    """Only inventory gets the economic-zero default -- a services company
+    still bills and pays, so absence of these should still fail loudly."""
+    missing_ar = {k: v for k, v in BASE_YEAR.items() if k != "accounts_receivable"}
+    with pytest.raises(KeyError):
+        unlevered_fcf(missing_ar, missing_ar, missing_ar, year=1)
+
+
 def test_ufcf_series_uses_prior_forecast_year_not_base_year_after_year_one():
     forecast = {
         1: make_forecast_year(10_500.0, 0.05),

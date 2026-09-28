@@ -191,7 +191,8 @@ def diagnose(ranges: list[MethodRange], terminal_value_share: float | None = Non
               equity_weight_in_wacc: float | None = None,
               precedent_tier_spread: float | None = None,
               comps_multiple_spread: float | None = None,
-              comps_peer_count: int | None = None) -> list[str]:
+              comps_peer_count: int | None = None,
+              precedent_deal_count: int | None = None) -> list[str]:
     """Mechanical warnings traced to actual inputs -- not narrative colour. Each one
     names a specific number that makes a specific method less trustworthy, so the
     reader discounts the right method rather than distrusting the whole exercise."""
@@ -217,6 +218,12 @@ def diagnose(ranges: list[MethodRange], terminal_value_share: float | None = Non
             f"subject financials. There is no single defensible 'precedent multiple' "
             f"here -- the range is a function of which deal you pick, so it should be "
             f"read as a scenario set, not a valuation.")
+
+    if precedent_deal_count is not None and precedent_deal_count < 2:
+        warnings.append(
+            f"Precedent: only {precedent_deal_count} sourced deal. A single transaction is "
+            f"an anecdote, not a range -- its 'spread' is 1.0x and its width zero by "
+            f"construction, which reads as maximal precision when it is the opposite.")
 
     if comps_multiple_spread is not None and comps_multiple_spread > 2.0:
         warnings.append(
@@ -244,7 +251,8 @@ def diagnose(ranges: list[MethodRange], terminal_value_share: float | None = Non
 def recommend_anchor(ranges: list[MethodRange], terminal_value_share: float | None = None,
                       precedent_tier_spread: float | None = None,
                       comps_multiple_spread: float | None = None,
-                      comps_peer_count: int | None = None) -> AnchorRecommendation:
+                      comps_peer_count: int | None = None,
+                      precedent_deal_count: int | None = None) -> AnchorRecommendation:
     """Derive which method is structurally fit to anchor, from measured properties only.
 
     Every threshold here matches the one `diagnose` warns at, so the two can never
@@ -278,6 +286,15 @@ def recommend_anchor(ranges: list[MethodRange], terminal_value_share: float | No
                 "function of which deal is picked, and a control premium is embedded "
                 "that a trading valuation should not carry",
                 f"{precedent_tier_spread:.1f}x spread between deals (threshold 2.0x)"))
+        elif precedent_deal_count is not None and precedent_deal_count < 2:
+            # Found live on Community Health Systems: one sourced deal gives low == mid ==
+            # high, a zero-width range with a 1.0x "spread" -- it passed every check and was
+            # picked as the ANCHOR, the most trusted method, when it is the least supported.
+            disqualified.append(Disqualification(
+                Method.PRECEDENT,
+                "a single transaction is an anecdote, not a range: zero width and a 1.0x "
+                "spread by construction, which reads as precision it does not have",
+                f"{precedent_deal_count} deal (threshold 2)"))
 
     if Method.TRADING_COMPS in present:
         if comps_multiple_spread is not None and comps_multiple_spread > 2.0:
@@ -338,7 +355,8 @@ def triangulate(ranges: list[MethodRange], anchor: Method | None = None,
                  equity_weight_in_wacc: float | None = None,
                  precedent_tier_spread: float | None = None,
                  comps_multiple_spread: float | None = None,
-                 comps_peer_count: int | None = None) -> Conclusion:
+                 comps_peer_count: int | None = None,
+                 precedent_deal_count: int | None = None) -> Conclusion:
     """`anchor` and `reasoning` are now OPTIONAL, and this is a deliberate reversal of
     the module's original position, worth stating rather than quietly changing.
 
@@ -381,9 +399,11 @@ def triangulate(ranges: list[MethodRange], anchor: Method | None = None,
             divergences.append(compare(a, b))
 
     warnings = diagnose(ranges, terminal_value_share, equity_weight_in_wacc,
-                         precedent_tier_spread, comps_multiple_spread, comps_peer_count)
+                         precedent_tier_spread, comps_multiple_spread, comps_peer_count,
+                         precedent_deal_count)
     recommendation = recommend_anchor(ranges, terminal_value_share, precedent_tier_spread,
-                                       comps_multiple_spread, comps_peer_count)
+                                       comps_multiple_spread, comps_peer_count,
+                                       precedent_deal_count)
 
     conflict = ""
     if anchor is not None:

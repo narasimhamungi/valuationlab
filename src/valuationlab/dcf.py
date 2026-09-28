@@ -93,16 +93,28 @@ def unlevered_fcf(base_year_actuals: dict, forecast_year: dict, prior_year: dict
     plus the immediately prior year (base-year actuals or the previous forecast year)
     for the working-capital delta. `forecast_year` and `prior_year` are entries from
     the dict Trellis's `run_forecast` returns -- same schema as `project_year`'s return
-    value, verified against trellis/src/trellis/forecast.py directly."""
+    value, verified against trellis/src/trellis/forecast.py directly.
+
+    inventory defaults to 0.0 when the key is absent, not required like
+    accounts_receivable/accounts_payable: confirmed on real data (CYH, a
+    hospital operator) that a services company with no InventoryNet tag
+    anywhere in its filings genuinely carries no meaningful inventory line,
+    not a missing-data gap. Trellis's own build_annual_table simply never
+    populates the key when no tag was ever found, rather than writing a
+    literal 0.0 -- KeyError on `prior_year["inventory"]` was the actual
+    live-run failure this fixes. accounts_receivable/accounts_payable are
+    left strict: a services company still bills and pays, so their absence
+    would be a real gap worth a loud failure, not a plausible economic zero.
+    """
     ebit = forecast_year["operating_income"]
     pretax = ebit - forecast_year["interest_expense"]
     effective_tax_rate = (forecast_year["income_tax_expense"] / pretax
                            if pretax else 0.0)
     nopat = ebit * (1 - effective_tax_rate)
 
-    nwc_now = (forecast_year["accounts_receivable"] + forecast_year["inventory"]
+    nwc_now = (forecast_year["accounts_receivable"] + forecast_year.get("inventory", 0.0)
                - forecast_year["accounts_payable"])
-    nwc_prior = (prior_year["accounts_receivable"] + prior_year["inventory"]
+    nwc_prior = (prior_year["accounts_receivable"] + prior_year.get("inventory", 0.0)
                  - prior_year["accounts_payable"])
     delta_nwc = nwc_now - nwc_prior
 
