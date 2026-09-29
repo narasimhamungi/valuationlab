@@ -43,7 +43,7 @@ pytest tests/ -v
 (`PYTHONPATH=src pytest tests/ -v` also still works, and is the only form that works on
 PowerShell if `conftest.py` is ever missing from a checkout for some reason.)
 
-**Expected:** `82 passed, 1 skipped`.
+**Expected:** `84 passed, 1 skipped` (the skipped module is the live Trellis integration suite).
 
 The skip is the Trellis integration contract test — correct behaviour without EDGAR
 access. Anything else failing means something is wrong; read the assertion message, they
@@ -121,13 +121,13 @@ This pulls the subject and every peer — pharma and medtech — through Trellis
 EDGAR, runs the forecast, and writes dated fixtures to `data/snapshots/`, plus a market
 snapshot for all of them.
 
-**Expected:** nine `wrote <TICKER>_financials.json` lines, one `FAILED ABT` line
-(expected — see below), and one `wrote market.json (10 tickers)`.
+**Expected:** nine `wrote <TICKER>_financials.json` lines and one
+`wrote market.json (9 tickers)`.
 
-**Abbott Laboratories (ABT) is a known, permanent failure**, not something to chase here.
-Its ingestion fails on nine fields across every year 2020-2025 — a broader
-data-availability problem Trellis's tag-level fixes don't address. `run_valuation.py`
-excludes it explicitly and states why.
+**Abbott Laboratories (ABT) is not in the snapshot set**, by choice: it is a four-segment
+diversified filer, not a pure-play peer for either leg (reasoning in
+`scripts/refresh_snapshots.py`). Its earlier ingestion failure is fixed upstream in
+Trellis v0.2.0 and no longer applies.
 
 **If any OTHER company fails,** the script reports which fields were missing rather than
 aborting the whole run. That's a real Trellis tag-resolution issue, not a ValuationLab

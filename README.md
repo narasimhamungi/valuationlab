@@ -241,9 +241,12 @@ Stated here rather than discovered by a reviewer:
 - **Share count is basic, not diluted.**
 - **Precedent sample is two deals.** Enough to demonstrate the tiering problem, not
   enough to form a stable range.
-- **Abbott Laboratories is excluded from both peer sets.** Its ingestion fails on nine
-  fields across every year from 2020-2025 — a broader ingestion problem, not a single
-  missing tag, and outside the scope of what this project's tag-level fixes address.
+- **Abbott Laboratories is excluded from both peer sets, on comparability.** It reports
+  four segments (Medical Devices, Diagnostics, Nutrition, Established Pharmaceuticals), so
+  its multiple is a blend — using it as a pure-play peer for one SOTP leg is the error the
+  SOTP exists to expose. It was first excluded for failing ingestion; that defect (SEC's
+  `companyconcept` endpoint returning empty for tags `companyfacts` carries) was traced and
+  fixed upstream in Trellis v0.2.0 with a per-tag fallback, and is no longer the reason.
 - **EBITDA is built from reported lines**, not company-adjusted figures, so litigation
   and IPR&D charges are included — comparable across peers computed the same way, not
   comparable to an externally quoted adjusted EBITDA.

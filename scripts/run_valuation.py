@@ -64,8 +64,9 @@ MEDTECH_PEERS = [
     {"cik": 310764, "ticker": "SYK", "name": "Stryker Corporation"},
     {"cik": 885725, "ticker": "BSX", "name": "Boston Scientific Corporation"},
 ]
-# Abbott (CIK 1800) is deliberately absent: it fails Trellis ingestion on nine fields
-# across every year 2020-2025, not a single missing tag. 3M is absent too -- its only
+# Abbott (CIK 1800) is deliberately absent on comparability: a four-segment diversified
+# filer, not a pure-play peer for either leg (see refresh_snapshots.py). Its original
+# ingestion failure is fixed upstream in Trellis v0.2.0. 3M is absent too -- its only
 # cash tag bundles restricted cash with no way to net it out, and restricted cash cannot
 # offset debt. Both are excluded rather than patched around.
 PEERS = PHARMA_PEERS  # whole-company Trading Comparables stays pharma-only,

@@ -13,10 +13,10 @@ Real data, not placeholders — nine companies across the subject and both peer 
 - **MedTech peer group** (MedTech leg): MDT, BDX, SYK, BSX
 - **Market snapshot:** share price and share count for all nine, in `market.json`
 
-**Abbott Laboratories (ABT) is deliberately absent.** Its ingestion fails on nine fields
-across every year 2020-2025 through Trellis — a broader data-availability problem, not a
-missing tag this project's fixes address. `run_valuation.py` excludes it explicitly and
-reports why, rather than silently dropping it.
+**Abbott Laboratories (ABT) is deliberately absent, on comparability.** It is a
+four-segment diversified filer, so its multiple is a blend rather than a pure-play peer for
+either SOTP leg; the reasoning is recorded in `scripts/refresh_snapshots.py`. Its original
+ingestion failure is fixed upstream in Trellis v0.2.0 and is no longer the reason.
 
 Each `<TICKER>_financials.json` records its own `generated` date and `base_year` — check
 those fields directly rather than trusting a date written into this file, which would go
