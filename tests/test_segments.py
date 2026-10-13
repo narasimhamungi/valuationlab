@@ -24,18 +24,17 @@ PHARMA = PeerGroup(
 def test_jnj_segments_reconcile_to_consolidated():
     """The integrity check the whole module rests on: segment revenue is hand-entered
     from the 10-K while consolidated comes from XBRL, so they fail independently.
-    Raw dollars, matching Trellis's convention -- a units bug here (millions vs raw
-    dollars) previously slipped past an absolute-tolerance version of this check."""
+    Raw dollars, matching Trellis's convention; the check uses a relative tolerance so a
+    units mismatch (millions vs raw dollars) cannot slip past it."""
     assert sum(s.revenue for s in JNJ_FY2025_SEGMENTS) == pytest.approx(94_193_000_000.0)
 
 
 def test_jnj_segments_are_raw_dollars_not_millions():
-    """Regression: JNJ_FY2025_SEGMENTS was originally written in millions (matching the
-    10-K's own convention) while every other figure in this pipeline -- Trellis's
-    consolidated revenue, net_debt, comps denominators -- is raw dollars. That mismatch
-    passed silently until build_sotp's reconciliation caught a 94-billion-dollar gap on
-    a live run. Each segment should be on the order of tens of billions, not tens of
-    thousands."""
+    """JNJ_FY2025_SEGMENTS must be in raw dollars, not the 10-K's millions: every other
+    figure in this pipeline -- Trellis's consolidated revenue, net_debt, comps
+    denominators -- is raw dollars, and a millions-scale entry shows up as a
+    94-billion-dollar reconciliation gap. Each segment should be on the order of tens of
+    billions, not tens of thousands."""
     for s in JNJ_FY2025_SEGMENTS:
         assert s.revenue > 1e9, (
             f"{s.name} revenue is {s.revenue:,.0f} -- looks like millions-scale, not "
@@ -59,7 +58,7 @@ def test_build_sotp_sums_legs_and_bridges_to_equity():
         (r.total_ev_mid - 8_000_000_000.0) / 2_409_898_597.0)
     assert r.implied_price_low < r.implied_price_mid < r.implied_price_high
     # A real dollar-per-share figure, not a number a million times too small or large --
-    # this is the check that would have caught the units bug directly.
+    # this check catches a units mismatch directly.
     assert 50.0 < r.implied_price_mid < 2000.0
 
 

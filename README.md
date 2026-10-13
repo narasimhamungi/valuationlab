@@ -1,5 +1,7 @@
 # ValuationLab
 
+[![CI](https://github.com/narasimhamungi/valuationlab/actions/workflows/ci.yml/badge.svg)](https://github.com/narasimhamungi/valuationlab/actions/workflows/ci.yml)
+
 An integrated valuation engine that runs a DCF, trading comparables, precedent
 transactions, and a segment-weighted sum-of-the-parts on the same company from the same
 source data — and reports **which methods can be trusted and why**, instead of averaging
@@ -23,7 +25,7 @@ disqualify the method in a typical model. They just quietly make the number wron
 
 ## Why it matters
 
-In an interview or a committee memo, "the DCF says $X" is worth nothing on its own. The
+In a committee memo or an investment discussion, "the DCF says $X" is worth nothing on its own. The
 answer that demonstrates competence is "the DCF says $X, but it's 81% terminal value, so
 I'd treat it as a sensitivity check, not a finding — and the comps set is too dispersed to
 trust either." That judgment is the actual skill. This tool is built to make the inputs
@@ -86,9 +88,7 @@ never averaged together.
 it, each reportable segment is valued against its own dedicated peer group instead of
 being forced into one blended multiple. Segment revenue is hardcoded from the 10-K and
 checked against Trellis's consolidated figure on every run — a relative tolerance, not an
-absolute one, after a real bug where a millions-vs-raw-dollars mismatch produced a gap in
-the tens of billions that an absolute-dollar check wouldn't have caught at every possible
-scale. **Revenue multiples only** — segment EBITDA isn't cleanly disclosed (see Known
+absolute one, so a millions-vs-raw-dollars mismatch is caught at any scale. **Revenue multiples only** — segment EBITDA isn't cleanly disclosed (see Known
 limitations). Every leg tracks its own fitness independently: a leg whose peer group is
 too dispersed to trust is flagged, and the total states plainly what fraction of revenue
 rests on a sound peer group rather than blending a good leg and a bad one into one number.
@@ -119,16 +119,15 @@ too dispersed for a median to value a segment, MedTech's are not. **This is why 
 sum-of-the-parts module exists** — it reports per-segment fitness instead of a single
 blended number.
 
-### Correction: the six-peer argument this section used to make
+### Does adding peers settle it?
 
-An earlier version of this section added Eli Lilly and Amgen, observed the spread widen
-from 2.5x to 4.7x, and concluded that dispersion was economic rather than small-sample
-noise. **That inference was invalid, and the flaw was in the statistic.** A min/max spread
-is monotonic in sample size — the minimum can only fall and the maximum can only rise — so
-it widens whatever you add, including draws from a single tight distribution. Simulated
-from one lognormal with no change in the underlying distribution, mean min/max spread runs
-about 1.7x at four peers, 1.9x at six and 2.2x at ten. Observing a wider spread at six
-peers was therefore consistent with the claim and equally consistent with its opposite.
+Adding Eli Lilly and Amgen widens the pharma spread from 2.5x to 4.7x, but that comparison
+cannot tell economic dispersion from small-sample noise. **A min/max spread is monotonic in
+sample size** — the minimum can only fall and the maximum can only rise — so it widens
+whatever you add, including draws from a single tight distribution. Simulated from one
+lognormal with no change in the underlying distribution, mean min/max spread runs about
+1.7x at four peers, 1.9x at six and 2.2x at ten. A wider spread at six peers is consistent
+with heterogeneity and equally consistent with its opposite.
 
 Re-measured on scale-free statistics that can move in either direction, the result is
 inconclusive and rests on one company. Adding **LLY alone** raises the coefficient of
@@ -138,8 +137,7 @@ extreme observation rather than broad heterogeneity.
 
 So the supported claim is narrower and names the company: **Eli Lilly trades at 16.1x
 revenue against a 3.4x–8.6x range for Pfizer, Merck, AbbVie and Bristol-Myers.** The pharma
-peer set is one company away from usable. That is a better finding than the one it
-replaces, and it is checkable.
+peer set is one company away from usable, and that claim is checkable.
 
 A second consequence: the 2.0x disqualification threshold is not scale-free either. At four
 peers with the observed dispersion, pure sampling exceeds it roughly 68% of the time. The
@@ -161,25 +159,21 @@ one company-wide figure that would hide which half is trustworthy.
 "pharma precedent multiple" — enforced by a test, so a future third deal can't quietly
 average the gap away.
 
-**Building and validating this surfaced six real bugs in Trellis**, all latent on the
-originally-validated consumer/tech companies and all invisible until this project applied
-Trellis to pharma and medtech filers:
+**Pharma and medtech filers exercise six cases in Trellis that consumer/tech filers never
+reach.** Each is handled upstream in Trellis with a regression test, not worked around here:
 
-1. `operating_income`'s gap-fill derivation omitted R&D entirely, overstating J&J's
-   margin by 15.5 points (42.7% to 27.2%) and comparably for Merck, Pfizer, and BMS.
-2. The same omission existed **independently** in the forecast engine — fixing (1) alone
-   left the DCF's output unchanged to the cent, because the DCF consumes only the
-   forecast, not the historical table.
-3. `depreciation_amortization` dropped acquired-intangible amortization for AbbVie
-   entirely ($762M reported against a true ~$8.1B), inflating its EV/EBITDA to 32x.
-4. `long_term_debt` had no fallback for filers that tag neither of its two standard
-   forms — Medtronic and Boston Scientific failed ingestion completely on this one field.
-5-6. Single-tag ingestion gaps for Stryker's accounts payable and Boston Scientific's
-   accounts receivable, the latter confirmed as a true alias (not a broader scope
-   requiring special handling) by reconciling it against the filer's own gross-receivable
-   and allowance figures before adding it.
-
-All six are fixed upstream in Trellis with regression tests, not worked around here.
+1. `operating_income`'s gap-fill derivation must subtract R&D; without it J&J's margin is
+   overstated by 15.5 points (42.7% against 27.2%), and comparably for Merck, Pfizer and BMS.
+2. The forecast engine needs the same rule **independently**: the DCF consumes only the
+   forecast, not the historical table, so a fix in one place leaves the DCF unchanged.
+3. `depreciation_amortization` must include acquired-intangible amortization; for AbbVie
+   it is $762M reported against a true ~$8.1B, which would inflate EV/EBITDA to 32x.
+4. `long_term_debt` needs a third, lease-inclusive fallback for filers that tag neither
+   standard form (Medtronic, Boston Scientific).
+5-6. Stryker's accounts payable and Boston Scientific's accounts receivable use
+   non-standard tags; the receivables tag was confirmed as a true alias (not a broader
+   scope) by reconciling it against the filer's own gross-receivable and allowance
+   figures.
 
 ## Insight demonstrated
 
@@ -188,22 +182,19 @@ peer set is dispersed is not the same as knowing whether adding more peers would
 confirm it's structural. Both were tested, not assumed, in this project. The tool also
 refuses to produce a triangulated conclusion without a derived, numerically-grounded
 anchor recommendation — a design position about what a valuation output should be, not
-just a formatting choice. And building it surfaced upstream data-quality bugs that a
-purely consumer/tech-validated pipeline had never been forced to confront — the kind of
-finding that only comes from actually running a tool against real, messy data rather than
-a clean synthetic example.
+just a formatting choice. And applying the upstream pipeline to new sectors exercised
+data-quality cases that consumer/tech filers never reach — the kind of finding that only
+comes from running a tool against real, messy data rather than a clean synthetic example.
 
 ## Employer takeaway
 
-This is a candidate who builds valuation infrastructure with the provenance discipline of
-an audit workpaper — every multiple traceable to a filing, every simplification
-documented in the code, every method's weakness reported alongside its number — and who
-tests conclusions against a wider sample before trusting them, rather than stopping at the
-first plausible-looking result. The engineering is real: package-level integration with a
-separate repo, a cross-repo CI job that breaks if the upstream schema changes, a bug found
-and fixed by running the pipeline rather than by reasoning about it (the divergence
-classifier), and a units bug caught by a reconciliation check before it could ship a wrong
-number. The finance judgment is real too: recognizing that J&J's segment structure — not
+Valuation infrastructure built with the provenance discipline of an audit workpaper —
+every multiple traceable to a filing, every simplification documented in the code, every
+method's weakness reported alongside its number — with conclusions tested against a wider
+sample before they are trusted. The engineering: package-level integration with a separate
+repo, a cross-repo CI job that breaks if the upstream schema changes, a divergence
+classifier that refuses to read overlap between wide ranges as agreement, and a
+reconciliation check that catches unit mismatches at any scale. The finance judgment is real too: recognizing that J&J's segment structure — not
 its tagging idiosyncrasies — was the actual reason no single comps model could value it,
 and building the architecture to prove that rather than assert it.
 
@@ -219,9 +210,7 @@ PYTHONPATH=src python scripts/diagnose_consistency.py
 
 Full setup, live-run instructions, and verification steps: **[RUNNING.md](RUNNING.md)**.
 
-## Honest limitations
-
-Stated here rather than discovered by a reviewer:
+## Known limitations
 
 - **CAPM's equity risk premium is dated.** Beta and the risk-free rate are current;
   the ERP is Damodaran's implied estimate as of January 2026, the last one with a fixed,
@@ -244,9 +233,8 @@ Stated here rather than discovered by a reviewer:
 - **Abbott Laboratories is excluded from both peer sets, on comparability.** It reports
   four segments (Medical Devices, Diagnostics, Nutrition, Established Pharmaceuticals), so
   its multiple is a blend — using it as a pure-play peer for one SOTP leg is the error the
-  SOTP exists to expose. It was first excluded for failing ingestion; that defect (SEC's
-  `companyconcept` endpoint returning empty for tags `companyfacts` carries) was traced and
-  fixed upstream in Trellis v0.2.0 with a per-tag fallback, and is no longer the reason.
+  SOTP exists to expose. (It ingests correctly: Trellis v0.2.0 falls back per tag when
+  SEC's `companyconcept` endpoint returns empty for tags `companyfacts` carries.)
 - **EBITDA is built from reported lines**, not company-adjusted figures, so litigation
   and IPR&D charges are included — comparable across peers computed the same way, not
   comparable to an externally quoted adjusted EBITDA.

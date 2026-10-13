@@ -79,11 +79,6 @@ PEERS = PHARMA_PEERS  # whole-company Trading Comparables stays pharma-only,
 # came from. These are researched and dated, not placeholders. Re-verify the risk-free
 # rate and the ERP before republishing: the basis records their as-of dates, and the
 # mismatch between them is disclosed there rather than hidden.
-#
-# This comment previously told the reader these were placeholders to be replaced. That
-# was true when written and became false once the figures were sourced, and it sat
-# directly above the citations contradicting it -- a label that no longer matched
-# behaviour, in a repo whose argument is that labels must match behaviour.
 CAPM = CAPMInputs(
     beta=0.53,
     risk_free_rate=0.0496,
@@ -356,10 +351,9 @@ def main():
     # --- Triangulate -----------------------------------------------------------------
     comps_spread = comps.high / comps.low if comps.low > 0 else None
 
-    # The anchor is NOT hardcoded here. An earlier version of this script supplied a
-    # fixed rationale arguing comps should anchor; it survived three consecutive runs
-    # unchanged while the underlying data moved enough to invalidate it twice. The
-    # derived recommendation is computed from measured warnings instead, and states
+    # The anchor is NOT hardcoded here: a fixed rationale can survive runs unchanged while
+    # the underlying data moves enough to invalidate it. The derived recommendation is
+    # computed from measured warnings instead, and states
     # plainly when no method is fit to anchor. Supply anchor= and reasoning= here only
     # when you have a specific argument the structural checks don't capture -- the tool
     # will honour it and report the conflict if it contradicts the warnings.

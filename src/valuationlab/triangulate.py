@@ -14,9 +14,8 @@ What this module produces instead:
      mechanical reason -- not a narrative guess, but a reason traced to the inputs
      (terminal value dominance, stale denominators, deal tier mismatch).
   3. A stated conclusion that says which method to weight and WHY, with the reasoning
-     visible. In an IB/ER interview the answer "the DCF says $X" is worth nothing; the
-     answer "the DCF says $X but it's 82% terminal value so I'd anchor on comps" is
-     the actual skill.
+     visible. "The DCF says $X" is worth nothing on its own; "the DCF says $X but it's
+     82% terminal value so I'd anchor on comps" is the actual judgment.
 
 Reliability tiering is structural, not a judgment applied after seeing the numbers.
 Each method carries a known weakness that is a property of HOW it was built here:
@@ -141,15 +140,12 @@ def compare(a: MethodRange, b: MethodRange) -> Divergence:
     """Classification is driven by the MIDPOINT gap first, with overlap as secondary
     evidence -- not the other way round.
 
-    Overlap alone is close to worthless as a convergence signal, a defect found by
-    running the real pipeline rather than by reasoning about it: two methods whose own
+    Overlap alone is close to worthless as a convergence signal: two methods whose own
     ranges each span ~100% of their midpoint will overlap almost regardless of whether
-    they agree about anything. An earlier version of this function reported a 100%
-    midpoint gap as "Partial ... not a contradiction" purely because the wide ranges
-    touched, while the same output separately warned that both ranges had low
-    discriminating power -- it contradicted itself in one report. Overlap is now only
-    allowed to soften the reading when the ranges are tight enough for the overlap to
-    mean something."""
+    they agree about anything. Reading such overlap as agreement would report a 100%
+    midpoint gap as "Partial ... not a contradiction" while the same output warns that
+    both ranges have low discriminating power. Overlap is only allowed to soften the
+    reading when the ranges are tight enough for the overlap to mean something."""
     gap = (a.mid - b.mid) / b.mid if b.mid else float("inf")
     overlapping = _overlaps(a, b)
     # An overlap is only informative if neither range is so wide that it would overlap
@@ -357,17 +353,13 @@ def triangulate(ranges: list[MethodRange], anchor: Method | None = None,
                  comps_multiple_spread: float | None = None,
                  comps_peer_count: int | None = None,
                  precedent_deal_count: int | None = None) -> Conclusion:
-    """`anchor` and `reasoning` are now OPTIONAL, and this is a deliberate reversal of
-    the module's original position, worth stating rather than quietly changing.
+    """`anchor` and `reasoning` are OPTIONAL.
 
-    The original argument was that choosing which method to trust is the analytical act
-    this tool exists to support, so the tool should never make that choice itself. That
-    argument is still right about who decides. It was wrong about what an unchecked
-    stated anchor does in practice: the rationale supplied here survived three
-    consecutive runs, unchanged, while the underlying data moved enough to invalidate
-    it twice -- once claiming comps were trustworthy because their inputs were
-    "observed", while the same report warned the comps range spanned 383% of its
-    midpoint.
+    Choosing which method to trust is the analytical act this tool exists to support,
+    so the analyst decides. But an unchecked stated anchor can survive runs unchanged
+    while the underlying data moves enough to invalidate it -- e.g. claiming comps are
+    trustworthy because their inputs are "observed" while the same report warns the
+    comps range spans 383% of its midpoint.
 
     So: the caller's anchor still WINS when supplied -- the tool does not overrule the
     analyst. But `recommend_anchor` computes what the measured warnings support,

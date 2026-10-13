@@ -126,16 +126,14 @@ snapshot for all of them.
 
 **Abbott Laboratories (ABT) is not in the snapshot set**, by choice: it is a four-segment
 diversified filer, not a pure-play peer for either leg (reasoning in
-`scripts/refresh_snapshots.py`). Its earlier ingestion failure is fixed upstream in
-Trellis v0.2.0 and no longer applies.
+`scripts/refresh_snapshots.py`). It ingests correctly since Trellis v0.2.0.
 
 **If any OTHER company fails,** the script reports which fields were missing rather than
 aborting the whole run. That's a real Trellis tag-resolution issue, not a ValuationLab
 bug — run Trellis's `scripts/diagnose_tags.py` against the blocking field, and if it
 returns "no candidate list defined," query SEC's companyfacts API directly for that
-CIK and field name to find what the filer actually uses (see Trellis's own commit
-history for worked examples: R&D, D&A, long-term debt, payables, and receivables tags
-were all found and fixed this way). Do not commit a partial snapshot set: the offline
+CIK and field name to find what the filer actually uses (Trellis's R&D, D&A, long-term
+debt, payables and receivables fallback chains were built this way). Do not commit a partial snapshot set: the offline
 run will silently drop missing peers from whichever comps group they belong to.
 
 Review the diff before committing. Snapshots are never auto-refreshed in CI by design —
@@ -203,9 +201,8 @@ PYTHONPATH=src python scripts/run_valuation.py --offline --max-market-age-days 3
   you're running.
 - **In the SOTP section:** does the revenue reconciliation show a gap of 0? If not, the
   hardcoded segment figures in `segments.py` are stale relative to whatever Trellis just
-  ingested — don't value around a nonzero gap, fix the segment data. This check has
-  already caught one real unit-mismatch bug (millions vs. raw dollars) before it could
-  produce a silently wrong number.
+  ingested — don't value around a nonzero gap, fix the segment data. The tolerance is
+  relative, so a unit mismatch (millions vs. raw dollars) fails at any scale.
 - Does the market price sit inside or outside the anchor range (when one exists)?
   Outside is interesting; make sure you can explain it before publishing.
 

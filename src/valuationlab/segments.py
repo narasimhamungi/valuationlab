@@ -135,11 +135,10 @@ class SOTPResult:
 # Revenue is in RAW DOLLARS, not millions, to match Trellis's XBRL ingestion
 # convention -- every other figure in this pipeline (base["revenue"], net_debt,
 # comps multiples' denominators) is raw dollars. The 10-K states these in millions
-# ("$60,401M"); the constants below are that figure x 1,000,000. Getting this wrong
-# was a real bug caught by build_sotp's own reconciliation check: a millions-scale
+# ("$60,401M"); the constants below are that figure x 1,000,000. A millions-scale
 # segment revenue multiplied by a correctly-scaled EV/Revenue multiple produces an EV
 # a million times too small, which then gets a normal-sized net_debt subtracted from
-# it -- silently wrong, not loudly wrong, if the reconciliation hadn't existed.
+# it -- silently wrong; build_sotp's reconciliation check catches it.
 JNJ_FY2025_SEGMENTS = (
     Segment(
         name="Innovative Medicine", revenue=60_401_000_000.0,
@@ -167,13 +166,10 @@ def build_sotp(segments: tuple[Segment, ...], groups: dict[str, PeerGroup],
     figure surfaces as an error rather than as a quietly wrong valuation."""
     seg_total = sum(s.revenue for s in segments)
     gap = seg_total - consolidated_revenue
-    # `tolerance` is a FRACTION of consolidated revenue, not an absolute dollar amount --
-    # deliberately, after a real bug: an absolute tolerance of $1 looked reasonable when
-    # this was first written with millions-scale test fixtures, then silently allowed
-    # nothing to fail when the real inputs turned out to be raw-dollar-scale (a
-    # million-times unit mismatch produces a gap in the tens of billions, which an
-    # absolute-dollar tolerance has no scale-appropriate way to bound). A relative
-    # tolerance catches a unit mismatch at any scale, including ones not yet seen.
+    # `tolerance` is a FRACTION of consolidated revenue, not an absolute dollar amount:
+    # an absolute tolerance sized for millions-scale fixtures has no scale-appropriate
+    # way to bound raw-dollar inputs (a million-times unit mismatch produces a gap in the
+    # tens of billions). A relative tolerance catches a unit mismatch at any scale.
     rel_gap = abs(gap) / consolidated_revenue if consolidated_revenue else float("inf")
     if rel_gap > tolerance:
         raise ValueError(
